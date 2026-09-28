@@ -1,462 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ClassSlot — Apex Tuition</title>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+Fix the existing ClassSlot Vue 3 + Tailwind app. Keep current look (warm paper, navy, gold). Keep localStorage for now. Do not add paid APIs.
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { paper: '#F6F1EA', ink: '#1B2430', gold: '#C4A574' },
-                    fontFamily: { serif: ['Fraunces', 'serif'], sans: ['Outfit', 'sans-serif'] },
-                    borderRadius: { '2xl': '20px', 'xl': '14px' }
-                }
-            }
-        }
-    </script>
+MUST FIX
 
-    <style>
-        [v-cloak] { display: none; }
-        body { background-color: #F6F1EA; color: #1B2430; -webkit-tap-highlight-color: transparent; }
-        .hairline { border: 1px solid rgba(27, 36, 48, 0.08); }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-        .fade-enter-active, .fade-leave-active { transition: opacity 180ms ease; }
-        .fade-enter-from, .fade-leave-to { opacity: 0; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .segmented { background: rgba(27, 36, 48, 0.05); padding: 4px; border-radius: 12px; }
-        .segmented button { border-radius: 10px; transition: all 0.2s; }
-        .segmented button.active { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #1B2430; font-weight: 600; }
-        input, textarea, select { background: white; border: 1px solid rgba(27, 36, 48, 0.08); border-radius: 12px; padding: 12px; width: 100%; outline: none; transition: border-color 0.2s; }
-        input:focus { border-color: #C4A574; }
-    </style>
-</head>
-<body class="font-sans antialiased">
-    <div id="app" v-cloak class="max-w-[430px] mx-auto min-h-screen flex flex-col relative">
-        
-        <!-- HEADER -->
-        <header class="sticky top-0 z-50 bg-paper/80 backdrop-blur-md px-6 py-4 flex justify-between items-center shadow-sm">
-            <button @click="resetToHome" class="flex items-center space-x-2 active:opacity-50 transition">
-                <span class="font-serif text-xl tracking-tight">ClassSlot</span>
-            </button>
-            
-            <div class="flex items-center space-x-1">
-                <button v-if="view !== 'landing'" @click="handleBack" class="h-11 px-3 text-xs font-bold uppercase tracking-widest text-ink/40">
-                    <i class="fa-solid fa-chevron-left mr-1"></i> Back
-                </button>
-                <button v-if="view === 'landing'" @click="navigateTo('teacherGate')" class="h-11 px-3 text-[10px] font-black uppercase tracking-widest text-gold">Teacher</button>
-                <button v-if="view === 'landing'" @click="navigateTo('adminLogin')" class="h-11 px-3 text-[10px] font-black uppercase tracking-widest text-ink/20">Admin</button>
-                <button v-if="isAdminView || isTeacherView" @click="logout" class="h-11 px-3 text-[10px] font-black uppercase tracking-widest text-red-400">Log out</button>
-            </div>
-        </header>
+1) BOOKING FORM
+Show the chosen class at the top: subject, level, day, time, teacher name.
+Disable Confirm until student, parent, and valid SG mobile (8 or 9 + 7 digits) are filled.
+On success, show “Student · Subject · Day Time” then WhatsApp + Return home.
 
-        <main class="flex-grow px-6 pb-20">
-            <transition name="fade" mode="out-in">
+2) ADMIN SETTINGS (currently empty)
+Fields that save to localStorage:
+- Centre name
+- Area / nearest MRT
+- Centre WhatsApp as 65XXXXXXXX
+- Admin password
+Default WhatsApp must be editable. Stop using a fake number after they change it.
 
-                <!-- VIEW: LANDING -->
-                <div v-if="view === 'landing'" :key="'landing'">
-                    <div class="mt-6 mb-8">
-                        <h1 class="font-serif text-4xl mb-1 leading-tight">Expert tuition, individual focus.</h1>
-                        <p class="text-ink/40 text-sm tracking-wide">{{ settings.centreName }} · Clementi</p>
-                    </div>
+3) ADMIN CLASSES TAB
+Add tab: Bookings | Classes | Teachers | Settings
+Classes: add, edit subject/level/day/time/duration/capacity/active, delete with confirm.
+Each class has a teacher dropdown from teachers list (or “Unassigned”).
+Landing cards must use that teacher’s name, not “Apex Tutor”.
 
-                    <div class="flex space-x-4 mb-8">
-                        <button @click="landingTab = 'classes'" :class="landingTab === 'classes' ? 'text-ink border-b-2 border-gold' : 'text-ink/30'" class="pb-2 font-bold uppercase tracking-widest text-[10px]">Classes</button>
-                        <button @click="landingTab = 'teachers'" :class="landingTab === 'teachers' ? 'text-ink border-b-2 border-gold' : 'text-ink/30'" class="pb-2 font-bold uppercase tracking-widest text-[10px]">Teachers</button>
-                    </div>
+4) ADMIN BOOKINGS
+Each booking card:
+- student, class, day/time, parent, phone
+- status select: Pending, Confirmed, Attended, No-show, Cancelled, Makeup
+- button “WhatsApp confirm” → wa.me to parent with filled text
+- button “Remind” → wa.me reminder text
+- filter All | Tomorrow
+- Export CSV
 
-                    <!-- Classes List -->
-                    <div v-if="landingTab === 'classes'" class="space-y-4">
-                        <div v-for="c in filteredClasses" :key="c.id" class="bg-white p-5 rounded-2xl hairline shadow-sm" :class="{'opacity-50 grayscale': getSeatsLeft(c.id) <= 0}">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 class="text-lg font-bold leading-tight">{{ c.subject }}</h3>
-                                    <span class="text-[10px] font-black uppercase tracking-widest text-gold">{{ c.level }}</span>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-bold">{{ c.day }}</div>
-                                    <div class="text-xs text-ink/40">{{ c.startTime }}</div>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between mt-4 pt-4 border-t border-ink/[0.04]">
-                                <div class="text-xs text-ink/40 font-medium">
-                                    {{ getTeacherName(c.teacherId) }} · <span :class="getSeatsLeft(c.id) > 0 ? 'text-gold font-bold' : ''">{{ getSeatsLeft(c.id) > 0 ? getSeatsLeft(c.id)+' seats left' : 'Full' }}</span>
-                                </div>
-                                <button @click="openBooking(c)" :disabled="getSeatsLeft(c.id) <= 0" class="bg-ink text-white px-6 py-2.5 rounded-xl text-xs font-bold active:scale-95 transition disabled:opacity-20">Book</button>
-                            </div>
-                        </div>
-                    </div>
+5) VIEW PUBLIC PAGE
+In teacher studio, “View public page” must open the public teacher profile view (same as parent Teachers profile) with Back to studio.
 
-                    <!-- Teachers List -->
-                    <div v-if="landingTab === 'teachers'" class="space-y-4">
-                        <div v-for="t in activeTeachers" :key="t.id" @click="viewTeacherProfile(t)" class="bg-white p-5 rounded-2xl hairline shadow-sm flex items-center space-x-4 active:scale-[0.98] transition cursor-pointer">
-                            <div class="h-16 w-16 rounded-full bg-paper flex items-center justify-center text-3xl shadow-inner">
-                                <span v-if="t.photoEmoji">{{ t.photoEmoji }}</span>
-                                <i v-else class="fa-solid fa-user text-ink/10"></i>
-                            </div>
-                            <div class="flex-grow">
-                                <h4 class="font-bold text-lg leading-tight">{{ t.name }}</h4>
-                                <p class="text-xs text-gold font-bold uppercase tracking-widest">{{ t.subjects }}</p>
-                                <p class="text-xs text-ink/40 mt-1 line-clamp-1">{{ t.headline || 'Profile being prepared' }}</p>
-                            </div>
-                            <i class="fa-solid fa-chevron-right text-ink/10"></i>
-                        </div>
-                    </div>
-                </div>
+6) ADMIN BACK
+Back or logo from admin dashboard and admin login goes to landing.
+Log out also goes to landing and clears admin session.
+Never trap inside Bookings/Classes/Settings.
 
-                <!-- VIEW: TEACHER GATE (Login/Create) -->
-                <div v-else-if="view === 'teacherGate'" :key="'gate'" class="mt-8">
-                    <div class="segmented flex w-full mb-8">
-                        <button v-for="t in ['Log in', 'Join Us']" :key="t" @click="gateTab = t" :class="{active: gateTab === t}" class="flex-1 py-3 text-sm font-medium text-ink/40">{{ t }}</button>
-                    </div>
+7) TEACHERS LIST
+Seed 3–4 teachers if the list is empty so Teachers tab is not blank on first load.
+Self-signup teachers still appear.
+Admin: Hide (not “BAN”) and Reset password.
+Teacher studio: add Password tab to change own password.
+Signup form: optional 8-digit WhatsApp.
 
-                    <div v-if="gateTab === 'Log in'" class="space-y-4">
-                        <h2 class="font-serif text-3xl mb-6">Welcome back.</h2>
-                        <input v-model="loginForm.name" type="text" placeholder="Your Name">
-                        <input v-model="loginForm.pass" type="password" placeholder="Password">
-                        <button @click="teacherLogin" class="w-full h-14 bg-ink text-white rounded-xl font-bold shadow-lg active:scale-95 transition">Access Studio</button>
-                        <p class="text-center text-xs text-ink/30">Forgot password? Ask the centre to reset.</p>
-                    </div>
+8) SUCCESS + LANDING
+Landing class card shows real teacher name and seats left.
+WhatsApp centre button uses settings.centrePhone.
 
-                    <div v-else class="space-y-4">
-                        <h2 class="font-serif text-3xl mb-6">Build your page.</h2>
-                        <div>
-                            <input v-model="regForm.name" type="text" placeholder="Full Name">
-                            <p v-if="regNameError" class="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1 tracking-wider">{{ regNameError }}</p>
-                        </div>
-                        <input v-model="regForm.subjects" type="text" placeholder="Main Subject (e.g. Primary Maths)">
-                        <input v-model="regForm.levels" type="text" placeholder="Levels (e.g. P3 - P6)">
-                        <input v-model="regForm.pass" type="password" placeholder="Password (min 6 chars)">
-                        <input v-model="regForm.passConfirm" type="password" placeholder="Confirm Password">
-                        <button @click="createTeacherAccount" :disabled="!isRegValid" class="w-full h-14 bg-gold text-white rounded-xl font-bold shadow-lg active:scale-95 transition disabled:opacity-30">Create my page</button>
-                    </div>
-                </div>
-
-                <!-- VIEW: TEACHER STUDIO -->
-                <div v-else-if="view === 'teacherStudio'" :key="'studio'" class="mt-4">
-                    <div class="segmented flex w-full mb-8">
-                        <button v-for="t in ['Portfolio', 'My Classes']" :key="t" @click="studioTab = t" :class="{active: studioTab === t}" class="flex-1 py-3 text-sm font-medium text-ink/40">{{ t }}</button>
-                    </div>
-
-                    <div v-if="studioTab === 'Portfolio'" class="space-y-6">
-                        <div class="flex items-center space-x-4 bg-white p-4 rounded-2xl hairline mb-4">
-                            <input v-model="curT.photoEmoji" class="w-20 text-center text-2xl h-20" placeholder="🪑">
-                            <div>
-                                <h3 class="font-bold uppercase tracking-tighter text-xl">{{ curT.name }}</h3>
-                                <button @click="viewTeacherProfile(curT)" class="text-[10px] font-black uppercase text-gold">View Public Page</button>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div class="group"><label>Headline</label><input v-model="curT.headline" placeholder="e.g. 10 years of MOE experience"></div>
-                            <div class="group"><label>Bio</label><textarea v-model="curT.bio" rows="4" placeholder="Tell parents about your approach..."></textarea></div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><label>Years Exp.</label><input v-model="curT.yearsTeaching" type="number"></div>
-                                <div><label>Education</label><input v-model="curT.education" placeholder="e.g. NUS B.Sc"></div>
-                            </div>
-                            <div><label>Specialties</label><input v-model="curT.specialties" placeholder="e.g. Heuristics, Exam Prep"></div>
-                            <div><label>Availability</label><input v-model="curT.availableDays" placeholder="e.g. Tue nights, Weekends"></div>
-                            <div class="flex items-center p-3 bg-white rounded-xl hairline">
-                                <input type="checkbox" v-model="curT.showWhatsApp" class="w-5 h-5 mr-3">
-                                <span class="text-xs font-bold text-ink/60 uppercase">Show WhatsApp to parents</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div v-if="studioTab === 'My Classes'" class="space-y-4">
-                        <button @click="addTeacherClass" class="w-full py-4 rounded-xl border-2 border-dashed border-ink/10 text-ink/30 text-xs font-bold uppercase tracking-widest">+ List new class</button>
-                        <div v-for="c in teacherClasses" :key="c.id" class="bg-white p-4 rounded-2xl hairline space-y-3">
-                            <div class="grid grid-cols-2 gap-2">
-                                <input v-model="c.subject" class="text-xs font-bold" placeholder="Subject">
-                                <input v-model="c.level" class="text-xs font-bold" placeholder="Level">
-                                <select v-model="c.day" class="text-xs font-bold"><option v-for="d in days">{{ d }}</option></select>
-                                <input v-model="c.startTime" class="text-xs font-bold" placeholder="Time">
-                                <input type="number" v-model="c.capacity" class="text-xs font-bold" placeholder="Max Seats">
-                                <button @click="deleteClass(c.id)" class="text-[10px] font-black uppercase text-red-300">Remove</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- VIEW: TEACHER PROFILE (PUBLIC) -->
-                <div v-else-if="view === 'teacherProfile'" :key="'profile'" class="mt-4 pb-12">
-                    <div class="text-center mb-8">
-                        <div class="h-24 w-24 rounded-full bg-white hairline shadow-sm mx-auto mb-4 flex items-center justify-center text-5xl">{{ browsingT.photoEmoji || '👤' }}</div>
-                        <h2 class="font-serif text-3xl">{{ browsingT.name }}</h2>
-                        <p class="text-gold font-bold uppercase tracking-widest text-xs mt-1">{{ browsingT.subjects }}</p>
-                    </div>
-
-                    <div v-if="browsingT.headline" class="bg-white p-5 rounded-2xl hairline mb-6">
-                        <h4 class="text-[10px] font-black uppercase tracking-widest text-ink/30 mb-2">Philosophy</h4>
-                        <p class="text-sm font-semibold italic text-ink/70">"{{ browsingT.headline }}"</p>
-                    </div>
-
-                    <div class="space-y-6">
-                        <div v-if="browsingT.bio">
-                            <h4 class="text-[10px] font-black uppercase tracking-widest text-ink/30 mb-2 ml-1">About</h4>
-                            <p class="text-sm leading-relaxed text-ink/60">{{ browsingT.bio }}</p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-white p-4 rounded-2xl hairline">
-                                <h4 class="text-[10px] font-black uppercase tracking-widest text-ink/30 mb-1">Experience</h4>
-                                <p class="text-sm font-bold">{{ browsingT.yearsTeaching }} Years</p>
-                            </div>
-                            <div class="bg-white p-4 rounded-2xl hairline">
-                                <h4 class="text-[10px] font-black uppercase tracking-widest text-ink/30 mb-1">Education</h4>
-                                <p class="text-sm font-bold line-clamp-1">{{ browsingT.education || '-' }}</p>
-                            </div>
-                        </div>
-
-                        <h4 class="text-[10px] font-black uppercase tracking-widest text-ink/30 mb-2 ml-1">Live Classes</h4>
-                        <div class="space-y-4">
-                            <div v-for="c in teacherClassesBrowsing" :key="c.id" class="bg-white p-4 rounded-2xl hairline flex justify-between items-center">
-                                <div>
-                                    <p class="text-sm font-bold leading-none">{{ c.subject }}</p>
-                                    <p class="text-[10px] text-ink/40 mt-1 uppercase font-bold tracking-widest">{{ c.day }} · {{ c.startTime }}</p>
-                                </div>
-                                <button @click="openBooking(c)" :disabled="getSeatsLeft(c.id) <= 0" class="text-xs font-black uppercase tracking-widest text-gold disabled:opacity-20">{{ getSeatsLeft(c.id) > 0 ? 'Book' : 'Full' }}</button>
-                            </div>
-                            <div v-if="teacherClassesBrowsing.length === 0" class="text-center py-6 border-2 border-dashed border-ink/5 rounded-2xl italic text-ink/30 text-sm">No active classes yet.</div>
-                        </div>
-
-                        <a v-if="browsingT.showWhatsApp && browsingT.whatsapp" :href="'https://wa.me/'+browsingT.whatsapp" class="w-full h-14 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center space-x-2 active:scale-95 transition">
-                            <i class="fab fa-whatsapp text-xl"></i>
-                            <span>Contact Teacher</span>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- (Original logic components below: Booking Form, Admin Dashboard, Success) -->
-                <!-- ADMIN DASHBOARD (Updated with Teachers Tab) -->
-                <div v-else-if="view === 'adminDashboard'" :key="'admin'" class="mt-4">
-                    <div class="segmented flex w-full mb-8">
-                        <button v-for="t in ['Bookings', 'Teachers', 'Settings']" :key="t" @click="adminTab = t" :class="{active: adminTab === t}" class="flex-1 py-3 text-sm font-medium text-ink/40">{{ t }}</button>
-                    </div>
-                    
-                    <div v-if="adminTab === 'Teachers'" class="space-y-4">
-                        <div v-for="t in teachers" :key="t.id" class="bg-white p-4 rounded-2xl hairline flex justify-between items-center">
-                            <div>
-                                <p class="font-bold">{{ t.name }}</p>
-                                <p class="text-[10px] text-ink/30 uppercase font-black tracking-widest">{{ t.active ? 'Active' : 'Inactive' }}</p>
-                            </div>
-                            <div class="flex space-x-2">
-                                <button @click="t.active = !t.active" class="text-[10px] font-black uppercase" :class="t.active ? 'text-red-400':'text-green-500'">{{ t.active ? 'Ban':'Allow' }}</button>
-                                <button @click="resetTeacherPass(t)" class="text-[10px] font-black uppercase text-gold">Reset Pass</button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- (Include original Admin Bookings/Settings logic here if needed) -->
-                    <div v-if="adminTab === 'Bookings'" class="space-y-4">
-                        <div v-for="b in filteredBookings" class="bg-white p-4 rounded-2xl hairline">
-                            <div class="flex justify-between">
-                                <p class="font-bold uppercase tracking-tight">{{ b.studentName }}</p>
-                                <span class="text-[10px] font-black uppercase text-ink/30">{{ b.status }}</span>
-                            </div>
-                            <p class="text-xs text-ink/50">{{ getClass(b.classId).subject }} · {{ b.phone }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- VIEW: BOOKING FORM -->
-                <div v-else-if="view === 'booking'" :key="'booking'" class="mt-4">
-                    <h2 class="font-serif text-3xl mb-8">Book slot</h2>
-                    <div class="space-y-4">
-                        <input v-model="form.studentName" placeholder="Student Name">
-                        <input v-model="form.parentName" placeholder="Parent Name">
-                        <input v-model="form.phone" type="tel" placeholder="8-digit mobile">
-                        <div class="segmented flex w-full">
-                            <button v-for="t in ['Trial', 'Weekly']" :key="t" @click="form.type = t" :class="{active: form.type === t}" class="flex-1 py-3 text-sm font-medium text-ink/40">{{ t }}</button>
-                        </div>
-                        <button @click="submitBooking" :disabled="!isFormValid" class="w-full h-14 bg-ink text-white rounded-xl font-bold active:scale-95 transition disabled:opacity-20">Confirm Booking</button>
-                    </div>
-                </div>
-
-                <!-- VIEW: SUCCESS -->
-                <div v-else-if="view === 'success'" :key="'success'" class="text-center mt-20">
-                    <div class="mb-6 inline-flex h-20 w-20 bg-green-50 text-green-600 rounded-full items-center justify-center text-3xl">
-                        <i class="fa-solid fa-check"></i>
-                    </div>
-                    <h2 class="font-serif text-3xl mb-4">Booking received.</h2>
-                    <a :href="whatsappLink" target="_blank" class="w-full h-14 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center space-x-2 active:scale-95 transition">
-                        <i class="fab fa-whatsapp text-xl"></i>
-                        <span>Message the centre</span>
-                    </a>
-                    <button @click="resetToHome" class="mt-8 text-xs font-bold uppercase text-ink/20">Return home</button>
-                </div>
-
-                <!-- VIEW: ADMIN LOGIN -->
-                <div v-else-if="view === 'adminLogin'" :key="'adminlog'" class="mt-12">
-                    <h2 class="font-serif text-3xl mb-8">Admin Access</h2>
-                    <input v-model="adminPassInput" type="password" placeholder="Password">
-                    <button @click="loginAdmin" class="w-full h-14 bg-ink text-white rounded-xl font-bold mt-4">Login</button>
-                </div>
-
-            </transition>
-        </main>
-    </div>
-
-    <script>
-        const { createApp, ref, computed, onMounted, watch } = Vue;
-
-        createApp({
-            setup() {
-                const view = ref('landing');
-                const landingTab = ref('classes');
-                const gateTab = ref('Log in');
-                const studioTab = ref('Portfolio');
-                const adminTab = ref('Bookings');
-                
-                const adminPassInput = ref('');
-                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-                const settings = ref({ centreName: 'Apex Tuition', centrePhone: '6580000000', adminPassword: 'demo1234' });
-                const classes = ref([]);
-                const bookings = ref([]);
-                const teachers = ref([]);
-                
-                const curT = ref(null); // Current Logged Teacher
-                const browsingT = ref(null); // Public Profile Target
-                const selectedClass = ref(null);
-                const lastBooking = ref(null);
-
-                const regForm = ref({ name: '', pass: '', passConfirm: '', subjects: '', levels: '', whatsapp: '' });
-                const loginForm = ref({ name: '', pass: '' });
-                const form = ref({ studentName: '', parentName: '', phone: '', type: 'Trial' });
-
-                onMounted(() => {
-                    const s = localStorage.getItem('cs_v2_settings');
-                    const c = localStorage.getItem('cs_v2_classes');
-                    const b = localStorage.getItem('cs_v2_bookings');
-                    const t = localStorage.getItem('cs_v2_teachers');
-                    if(s) settings.value = JSON.parse(s);
-                    if(c) classes.value = JSON.parse(c);
-                    if(b) bookings.value = JSON.parse(b);
-                    if(t) teachers.value = JSON.parse(t);
-                    
-                    // Seed if empty
-                    if (classes.value.length === 0) {
-                        classes.value = [
-                            { id: 1, subject: 'P5 Maths', level: 'P5', day: 'Sat', startTime: '10:00', teacherId: null, capacity: 6, active: true },
-                            { id: 2, subject: 'Sec 3 E-Math', level: 'Sec 3', day: 'Sun', startTime: '10:00', teacherId: null, capacity: 6, active: true }
-                        ];
-                    }
-
-                    window.onpopstate = (e) => { if(e.state) view.value = e.state.view; else view.value = 'landing'; };
-                });
-
-                watch([settings, classes, bookings, teachers], () => {
-                    localStorage.setItem('cs_v2_settings', JSON.stringify(settings.value));
-                    localStorage.setItem('cs_v2_classes', JSON.stringify(classes.value));
-                    localStorage.setItem('cs_v2_bookings', JSON.stringify(bookings.value));
-                    localStorage.setItem('cs_v2_teachers', JSON.stringify(teachers.value));
-                }, { deep: true });
-
-                const navigateTo = (v) => { view.value = v; window.history.pushState({view:v}, ''); };
-                const handleBack = () => window.history.back();
-                const resetToHome = () => { navigateTo('landing'); curT.value = null; };
-                const logout = () => resetToHome();
-
-                const activeTeachers = computed(() => teachers.value.filter(t => t.active && t.name && t.subjects));
-                const filteredClasses = computed(() => classes.value.filter(c => c.active));
-                const isAdminView = computed(() => view.value === 'adminDashboard');
-                const isTeacherView = computed(() => view.value === 'teacherStudio');
-
-                // TEACHER ACTIONS
-                const regNameError = computed(() => {
-                    if (!regForm.value.name) return null;
-                    const exists = teachers.value.find(t => t.name.toLowerCase() === regForm.value.name.toLowerCase());
-                    return exists ? 'Name already registered' : null;
-                });
-
-                const isRegValid = computed(() => 
-                    regForm.value.name && !regNameError.value && 
-                    regForm.value.pass.length >= 6 && 
-                    regForm.value.pass === regForm.value.passConfirm &&
-                    regForm.value.subjects
-                );
-
-                const createTeacherAccount = () => {
-                    const newT = {
-                        id: Date.now(),
-                        name: regForm.value.name,
-                        password: regForm.value.pass,
-                        subjects: regForm.value.subjects,
-                        levels: regForm.value.levels,
-                        whatsapp: '', headline: '', bio: '', education: '', yearsTeaching: 0, specialties: '', availableDays: '', photoEmoji: '👤', showWhatsApp: false, active: true, createdAt: new Date()
-                    };
-                    teachers.value.push(newT);
-                    curT.value = newT;
-                    navigateTo('teacherStudio');
-                };
-
-                const teacherLogin = () => {
-                    const t = teachers.value.find(x => x.name.toLowerCase() === loginForm.value.name.toLowerCase() && x.password === loginForm.value.pass);
-                    if (t) { curT.value = t; navigateTo('teacherStudio'); }
-                    else alert('Invalid credentials');
-                };
-
-                const teacherClasses = computed(() => classes.value.filter(c => c.teacherId === curT.value?.id));
-                const addTeacherClass = () => classes.value.unshift({ id: Date.now(), subject: 'New Subject', level: 'Level', day: 'Sat', startTime: '09:00', teacherId: curT.value.id, capacity: 6, active: true });
-
-                const viewTeacherProfile = (t) => { browsingT.value = t; navigateTo('teacherProfile'); };
-                const teacherClassesBrowsing = computed(() => classes.value.filter(c => c.teacherId === browsingT.value?.id && c.active));
-                
-                const getTeacherName = (id) => {
-                    if (!id) return 'Apex Tutor';
-                    return teachers.value.find(t => t.id === id)?.name || 'Former Tutor';
-                };
-
-                // ADMIN ACTIONS
-                const loginAdmin = () => {
-                    if (adminPassInput.value === settings.value.adminPassword) navigateTo('adminDashboard');
-                    else alert('Wrong password');
-                };
-                const resetTeacherPass = (t) => { const p = prompt('New password?'); if(p) t.password = p; };
-                const filteredBookings = computed(() => [...bookings.value].sort((a,b) => b.id - a.id));
-
-                // BOOKING LOGIC
-                const getSeatsLeft = (id) => {
-                    const c = classes.value.find(x => x.id === id);
-                    const taken = bookings.value.filter(b => b.classId === id && ['Pending', 'Confirmed'].includes(b.status)).length;
-                    return (c?.capacity || 6) - taken;
-                };
-                const openBooking = (c) => { selectedClass.value = c; navigateTo('booking'); };
-                const isPhoneValid = computed(() => /^[89]\d{7}$/.test(form.value.phone));
-                const isFormValid = computed(() => form.value.studentName.length > 2 && isPhoneValid.value);
-                
-                const submitBooking = () => {
-                    const b = { id: Date.now(), classId: selectedClass.value.id, studentName: form.value.studentName, parentName: form.value.parentName, phone: '65' + form.value.phone, type: form.value.type, status: 'Pending', time: new Date().toLocaleString() };
-                    bookings.value.push(b);
-                    lastBooking.value = b;
-                    navigateTo('success');
-                };
-                const whatsappLink = computed(() => {
-                    if (!lastBooking.value) return '';
-                    const c = classes.value.find(x => x.id === lastBooking.value.classId);
-                    const msg = `Hi ${settings.value.centreName}, I've booked ${lastBooking.value.studentName} for ${c.subject} on ${c.day}. Parent: ${lastBooking.value.parentName}.`;
-                    return `https://wa.me/${settings.value.centrePhone}?text=${encodeURIComponent(msg)}`;
-                });
-
-                const getClass = (id) => classes.value.find(c => c.id === id) || {};
-                const deleteClass = (id) => { if(confirm('Delete class?')) classes.value = classes.value.filter(c => c.id !== id); };
-
-                return {
-                    view, landingTab, gateTab, studioTab, adminTab, settings, classes, bookings, teachers, curT, browsingT, selectedClass, lastBooking, regForm, loginForm, form, adminPassInput, days,
-                    navigateTo, handleBack, resetToHome, logout, activeTeachers, filteredClasses, isAdminView, isTeacherView, regNameError, isRegValid, createTeacherAccount, teacherLogin, teacherClasses, addTeacherClass, viewTeacherProfile, teacherClassesBrowsing, getTeacherName, loginAdmin, resetTeacherPass, filteredBookings, getSeatsLeft, openBooking, isPhoneValid, isFormValid, submitBooking, whatsappLink, getClass, deleteClass
-                }
-            }
-        }).mount('#app');
-    </script>
-</body>
-</html>
+Do not remove teacher self-signup (Join Us → studio).
+Return the full single HTML file.
