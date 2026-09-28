@@ -2,202 +2,286 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ClassSlot - Apex Tuition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ClassSlot — Apex Tuition</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Scripts -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        paper: '#F6F1EA',
+                        ink: '#1B2430',
+                        gold: '#C4A574',
+                    },
+                    fontFamily: {
+                        serif: ['Fraunces', 'serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        '2xl': '20px',
+                        'xl': '14px',
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
         [v-cloak] { display: none; }
-        :root { --navy: #0f172a; --amber: #f59e0b; }
-        .bg-navy { background-color: var(--navy); }
-        .text-navy { color: var(--navy); }
-        .bg-amber { background-color: var(--amber); }
-        .border-amber { border-color: var(--amber); }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .ios-card { background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .btn-primary { background-color: var(--navy); color: white; padding: 14px; border-radius: 12px; font-weight: 600; text-align: center; width: 100%; display: block; }
-        .btn-secondary { background-color: var(--amber); color: var(--navy); padding: 14px; border-radius: 12px; font-weight: 700; text-align: center; width: 100%; display: block; }
+        body { background-color: #F6F1EA; color: #1B2430; -webkit-tap-highlight-color: transparent; }
+        .hairline { border: 1px solid rgba(27, 36, 48, 0.08); }
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        input:focus { outline: none; border-color: #C4A574; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 180ms ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        /* Custom Segmented Control */
+        .segmented { background: rgba(27, 36, 48, 0.05); padding: 4px; border-radius: 12px; }
+        .segmented button { border-radius: 10px; transition: all 0.2s; }
+        .segmented button.active { background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #1B2430; font-weight: 600; }
     </style>
 </head>
-<body>
-    <div id="app" v-cloak>
-        <!-- NAV -->
-        <nav class="bg-navy text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-lg">
-            <h1 class="font-bold text-lg tracking-tight" @click="view = 'landing'">{{ settings.centreName }}</h1>
-            <button v-if="view !== 'adminDashboard'" @click="view = 'admin'" class="text-xs font-bold bg-white/10 px-3 py-1 rounded-full text-amber-400">ADMIN</button>
-            <button v-else @click="view = 'landing'" class="text-xs font-bold bg-white/10 px-3 py-1 rounded-full">EXIT</button>
-        </nav>
-
-        <!-- PARENT: LANDING -->
-        <div v-if="view === 'landing'" class="p-4 max-w-md mx-auto">
-            <div class="mb-6 mt-2">
-                <h2 class="text-3xl font-extrabold text-navy leading-tight">Book a class<br>or trial</h2>
-                <p class="text-slate-500 mt-1 font-medium">Nearest MRT: <span class="text-navy">Clementi</span></p>
+<body class="font-sans antialiased">
+    <div id="app" v-cloak class="max-w-[430px] mx-auto min-h-screen flex flex-col relative">
+        
+        <!-- HEADER / NAVIGATION -->
+        <header class="sticky top-0 z-50 bg-paper/80 backdrop-blur-md px-6 py-4 flex justify-between items-center">
+            <button @click="resetToHome" class="flex items-center space-x-2 active:opacity-50 transition">
+                <span class="font-serif text-xl">ClassSlot</span>
+            </button>
+            
+            <div class="flex items-center">
+                <!-- Back Button (Visible when not on Landing) -->
+                <button v-if="view !== 'landing'" @click="handleBack" class="h-11 px-4 text-sm font-medium flex items-center text-ink/60 hover:text-ink">
+                    <i class="fa-solid fa-chevron-left mr-2"></i> Back
+                </button>
+                
+                <!-- Admin/Exit Toggle -->
+                <button v-if="view === 'landing'" @click="navigateTo('adminLogin')" class="h-11 px-4 text-xs tracking-widest font-semibold uppercase text-gold">Admin</button>
+                <button v-if="isAdminView" @click="resetToHome" class="h-11 px-4 text-xs tracking-widest font-semibold uppercase text-red-500">Exit Site</button>
             </div>
+        </header>
 
-            <input type="text" v-model="searchQuery" placeholder="Search subject (e.g. Maths)..." class="w-full p-4 mb-6 ios-card border-2 border-transparent focus:border-amber outline-none transition-all">
+        <main class="flex-grow px-6 pb-20">
+            <transition name="fade" mode="out-in">
 
-            <div class="space-y-4">
-                <div v-for="c in filteredClasses" :key="c.id" class="ios-card p-4 border-l-4" :class="getSeatsLeft(c.id) > 0 ? 'border-amber' : 'border-slate-300 opacity-60'">
-                    <div class="flex justify-between items-start">
+                <!-- 1. PARENT LANDING -->
+                <div v-if="view === 'landing'" :key="'landing'">
+                    <div class="mt-4 mb-8">
+                        <h1 class="font-serif text-4xl mb-1">Book a class</h1>
+                        <p class="text-ink/50 text-sm tracking-wide">{{ settings.centreName }} · Clementi</p>
+                    </div>
+
+                    <!-- Filter Chips -->
+                    <div class="flex space-x-2 mb-6 overflow-x-auto no-scrollbar">
+                        <button v-for="d in ['All', 'Sat', 'Sun']" :key="d" 
+                            @click="selectedDay = d"
+                            :class="selectedDay === d ? 'bg-ink text-white' : 'bg-white hairline text-ink/60'"
+                            class="px-5 py-2 rounded-full text-sm font-medium transition">
+                            {{ d }}
+                        </button>
+                    </div>
+
+                    <!-- Class Cards -->
+                    <div class="space-y-4">
+                        <div v-for="c in filteredClasses" :key="c.id" 
+                            class="bg-white p-5 rounded-2xl hairline shadow-sm flex flex-col transition"
+                            :class="{'opacity-50 grayscale-[0.5]': getSeatsLeft(c.id) <= 0}">
+                            
+                            <div class="flex justify-between items-start mb-4">
+                                <div class="flex-grow">
+                                    <h3 class="text-lg font-semibold leading-tight mb-1">{{ c.subject }}</h3>
+                                    <span class="inline-block px-2 py-0.5 bg-paper rounded text-[10px] font-bold uppercase tracking-wider text-ink/60 hairline">{{ c.level }}</span>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-semibold">{{ c.day }}</div>
+                                    <div class="text-xs text-ink/40">{{ c.startTime }}</div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between mt-2 pt-4 border-t border-ink/[0.04]">
+                                <div class="text-xs">
+                                    <span class="text-ink/40">{{ c.tutor }}</span>
+                                    <span class="mx-2 text-ink/10">·</span>
+                                    <span :class="getSeatsLeft(c.id) > 0 ? 'text-gold font-semibold' : 'text-ink/30'">
+                                        {{ getSeatsLeft(c.id) > 0 ? `${getSeatsLeft(c.id)} seats left` : 'Full' }}
+                                    </span>
+                                </div>
+                                <button @click="openBooking(c)" 
+                                    :disabled="getSeatsLeft(c.id) <= 0"
+                                    class="bg-ink text-white px-6 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition disabled:bg-ink/10 disabled:text-ink/20">
+                                    {{ getSeatsLeft(c.id) > 0 ? 'Book' : 'Full' }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. BOOKING FORM -->
+                <div v-else-if="view === 'booking'" :key="'booking'" class="mt-4">
+                    <div class="mb-8">
+                        <h2 class="font-serif text-3xl mb-2">Details</h2>
+                        <div class="bg-gold/10 p-4 rounded-xl hairline">
+                            <p class="font-semibold text-ink">{{ selectedClass.subject }}</p>
+                            <p class="text-sm text-ink/60">{{ selectedClass.day }} · {{ selectedClass.startTime }} · {{ selectedClass.level }}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
                         <div>
-                            <div class="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-1">{{ c.level }}</div>
-                            <h3 class="text-xl font-bold text-navy">{{ c.subject }}</h3>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-ink/40 mb-2 ml-1">Student Name</label>
+                            <input v-model="form.studentName" type="text" placeholder="Full name" class="w-full h-14 px-4 bg-white hairline rounded-xl">
                         </div>
-                        <div class="text-right">
-                            <span class="text-sm font-bold block text-navy">{{ c.day }}</span>
-                            <span class="text-xs text-slate-500 font-medium">{{ c.startTime }} ({{ c.duration }}m)</span>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-ink/40 mb-2 ml-1">Parent Name</label>
+                            <input v-model="form.parentName" type="text" placeholder="Full name" class="w-full h-14 px-4 bg-white hairline rounded-xl">
                         </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-ink/40 mb-2 ml-1">WhatsApp Number</label>
+                            <div class="relative">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 font-semibold text-ink/40">+65</span>
+                                <input v-model="form.phone" type="tel" placeholder="8-digit mobile" class="w-full h-14 pl-14 pr-4 bg-white hairline rounded-xl">
+                            </div>
+                            <p v-if="form.phone && !isPhoneValid" class="text-red-500 text-[10px] mt-1 ml-1 font-semibold uppercase tracking-wider">Starts with 8 or 9</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-widest text-ink/40 mb-2 ml-1">Frequency</label>
+                            <div class="segmented flex w-full">
+                                <button v-for="t in ['Trial', 'Weekly']" :key="t" 
+                                    @click="form.type = t"
+                                    :class="{active: form.type === t}"
+                                    class="flex-1 py-3 text-sm font-medium text-ink/40">
+                                    {{ t }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <button @click="submitBooking" 
+                            :disabled="!isFormValid"
+                            class="w-full h-14 bg-gold text-white rounded-xl font-bold shadow-lg shadow-gold/20 active:scale-95 transition disabled:opacity-30 disabled:grayscale">
+                            Confirm Booking
+                        </button>
                     </div>
-                    <div class="mt-4 flex justify-between items-center border-t pt-3">
-                        <span class="text-xs text-slate-500 font-medium">Tutor: {{ c.tutor }}</span>
-                        <span v-if="getSeatsLeft(c.id) > 0" class="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded font-black uppercase">
-                            {{ getSeatsLeft(c.id) }} slots left
-                        </span>
-                        <span v-else class="text-[10px] bg-red-100 text-red-700 px-2 py-1 rounded font-black uppercase">Full</span>
+                </div>
+
+                <!-- 3. SUCCESS -->
+                <div v-else-if="view === 'success'" :key="'success'" class="text-center mt-20">
+                    <div class="mb-6 inline-flex h-20 w-20 bg-green-50 text-green-600 rounded-full items-center justify-center text-3xl">
+                        <i class="fa-solid fa-check"></i>
                     </div>
-                    <button @click="openBooking(c)" :disabled="getSeatsLeft(c.id) <= 0" class="mt-4 w-full py-3 rounded-xl font-bold transition shadow-sm" :class="getSeatsLeft(c.id) > 0 ? 'bg-navy text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'">
-                        {{ getSeatsLeft(c.id) > 0 ? 'Book This Slot' : 'Class Full' }}
+                    <h2 class="font-serif text-3xl mb-4">We have your booking.</h2>
+                    <p class="text-ink/50 mb-10 px-6">Tap below to notify the centre via WhatsApp to finalize your slot.</p>
+                    
+                    <a :href="whatsappLink" target="_blank" class="w-full h-14 bg-[#25D366] text-white rounded-xl font-bold flex items-center justify-center space-x-2 shadow-lg shadow-green-500/20 active:scale-95 transition">
+                        <i class="fab fa-whatsapp text-xl"></i>
+                        <span>Message the centre</span>
+                    </a>
+
+                    <button @click="resetToHome" class="mt-8 text-sm font-semibold text-ink/40 hover:text-gold transition">
+                        Book another class
                     </button>
                 </div>
-            </div>
-        </div>
 
-        <!-- PARENT: FORM -->
-        <div v-if="view === 'booking'" class="p-4 max-w-md mx-auto">
-            <button @click="view = 'landing'" class="mb-4 text-navy font-bold text-sm flex items-center">
-                <i class="fas fa-arrow-left mr-2"></i> Back
-            </button>
-            <div class="ios-card p-6">
-                <h2 class="text-2xl font-bold text-navy">{{ selectedClass.subject }}</h2>
-                <p class="text-slate-500 text-sm mb-6">{{ selectedClass.level }} • {{ selectedClass.day }} {{ selectedClass.startTime }}</p>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Student Name</label>
-                        <input type="text" v-model="form.studentName" class="w-full p-3 bg-slate-50 rounded-lg border focus:ring-2 focus:ring-amber outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Parent Name</label>
-                        <input type="text" v-model="form.parentName" class="w-full p-3 bg-slate-50 rounded-lg border focus:ring-2 focus:ring-amber outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">WhatsApp Number</label>
-                        <div class="flex">
-                            <span class="inline-flex items-center px-3 bg-slate-200 border border-r-0 rounded-l-lg text-slate-600 font-bold text-sm">+65</span>
-                            <input type="tel" v-model="form.phone" placeholder="8XXXXXXX" class="w-full p-3 bg-slate-50 border rounded-r-lg focus:ring-2 focus:ring-amber outline-none font-bold">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">Booking Type</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button @click="form.type = 'Trial'" :class="form.type === 'Trial' ? 'bg-amber text-navy border-amber' : 'bg-white border-slate-200 text-slate-500'" class="py-3 border-2 rounded-xl font-bold transition">Trial</button>
-                            <button @click="form.type = 'Weekly'" :class="form.type === 'Weekly' ? 'bg-amber text-navy border-amber' : 'bg-white border-slate-200 text-slate-500'" class="py-3 border-2 rounded-xl font-bold transition">Weekly</button>
-                        </div>
-                    </div>
-                    <button @click="submitBooking" class="btn-primary mt-4 shadow-lg active:scale-95 transition-transform">Confirm Booking</button>
+                <!-- 4. ADMIN LOGIN -->
+                <div v-else-if="view === 'adminLogin'" :key="'login'" class="mt-12">
+                    <h2 class="font-serif text-3xl mb-8">Admin access</h2>
+                    <input v-model="adminPassInput" type="password" placeholder="Password" class="w-full h-14 px-4 bg-white hairline rounded-xl mb-4">
+                    <button @click="login" class="w-full h-14 bg-ink text-white rounded-xl font-bold active:scale-95 transition">Enter Dashboard</button>
                 </div>
-            </div>
-        </div>
 
-        <!-- PARENT: SUCCESS -->
-        <div v-if="view === 'success'" class="p-6 max-w-md mx-auto text-center mt-12">
-            <div class="ios-card p-8">
-                <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner">
-                    <i class="fas fa-check"></i>
-                </div>
-                <h2 class="text-3xl font-black text-navy mb-2">Booking received.</h2>
-                <p class="text-slate-500 mb-8 font-medium italic">Please tap below to notify us on WhatsApp to secure your slot.</p>
-                <a :href="whatsappLink" target="_blank" class="btn-secondary flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                    <i class="fab fa-whatsapp mr-2 text-2xl"></i> WhatsApp the Centre
-                </a>
-            </div>
-        </div>
-
-        <!-- ADMIN: LOGIN -->
-        <div v-if="view === 'admin'" class="p-6 max-w-md mx-auto">
-            <div class="ios-card p-6 shadow-xl">
-                <h2 class="text-xl font-bold mb-4 text-navy">Admin Portal</h2>
-                <input type="password" v-model="adminPassInput" placeholder="Password" class="w-full p-4 bg-slate-50 border rounded-xl mb-4 outline-none focus:border-amber">
-                <button @click="login" class="btn-primary">Login</button>
-            </div>
-        </div>
-
-        <!-- ADMIN: DASHBOARD -->
-        <div v-if="view === 'adminDashboard'" class="p-2 pb-24 max-w-4xl mx-auto">
-            <div class="flex border-b mb-4 bg-white sticky top-14 z-40 px-2 rounded-lg shadow-sm">
-                <button v-for="tab in ['Bookings', 'Classes', 'Settings']" @click="adminTab = tab" 
-                    :class="adminTab === tab ? 'border-b-4 border-amber text-navy font-black' : 'text-slate-400 font-bold'" class="flex-1 py-4 text-xs tracking-widest uppercase">
-                    {{ tab }}
-                </button>
-            </div>
-
-            <!-- ADMIN TAB: BOOKINGS -->
-            <div v-if="adminTab === 'Bookings'" class="space-y-4 px-2">
-                <div class="flex gap-2 mb-4">
-                    <button @click="adminFilter = 'All'" :class="adminFilter === 'All' ? 'bg-navy text-white' : 'bg-white'" class="px-4 py-2 rounded-full border text-[10px] font-black uppercase shadow-sm">All</button>
-                    <button @click="adminFilter = 'Tomorrow'" :class="adminFilter === 'Tomorrow' ? 'bg-navy text-white' : 'bg-white'" class="px-4 py-2 rounded-full border text-[10px] font-black uppercase shadow-sm">Tomorrow's Classes</button>
-                </div>
-                
-                <div v-for="b in filteredBookings" :key="b.id" class="ios-card p-4 text-sm relative border-l-4 border-amber">
-                    <div class="flex justify-between mb-2">
-                        <span class="font-black text-navy uppercase tracking-tight">{{ b.studentName }}</span>
-                        <select v-model="b.status" class="text-[10px] font-black border rounded px-1 bg-slate-50 uppercase">
-                            <option v-for="s in ['Pending', 'Confirmed', 'Attended', 'No-show', 'Cancelled', 'Makeup']">{{ s }}</option>
-                        </select>
-                    </div>
-                    <p class="font-bold">{{ getClass(b.classId).subject }} <span class="text-slate-400 font-medium">({{ getClass(b.classId).level }})</span></p>
-                    <p class="text-slate-500 text-xs mt-1">{{ getClass(b.classId).day }} • {{ b.type }} • Parent: {{ b.parentName }}</p>
-                    
-                    <div class="mt-4 flex gap-2">
-                        <button @click="sendConfirmWA(b)" class="flex-1 bg-green-50 text-green-700 py-3 rounded-lg font-black text-[10px] uppercase tracking-wider shadow-sm">Confirm WA</button>
-                        <button @click="sendReminderWA(b)" class="flex-1 bg-blue-50 text-blue-700 py-3 rounded-lg font-black text-[10px] uppercase tracking-wider shadow-sm">Reminder</button>
-                    </div>
-                </div>
-                <button @click="exportCSV" class="w-full text-slate-400 py-8 text-[10px] font-black uppercase tracking-widest">Export Bookings (CSV)</button>
-            </div>
-
-            <!-- ADMIN TAB: CLASSES -->
-            <div v-if="adminTab === 'Classes'" class="space-y-4 px-2">
-                <button @click="addClass" class="btn-secondary py-3 text-sm">+ Add New Class</button>
-                <div v-for="c in classes" :key="c.id" class="ios-card p-4 border border-slate-100">
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input v-model="c.subject" placeholder="Subject" class="border p-2 rounded text-xs font-bold bg-slate-50">
-                        <input v-model="c.level" placeholder="Level" class="border p-2 rounded text-xs font-bold bg-slate-50">
-                        <select v-model="c.day" class="border p-2 rounded text-xs font-bold bg-slate-50">
-                            <option v-for="d in days">{{ d }}</option>
-                        </select>
-                        <input v-model="c.startTime" placeholder="10:00" class="border p-2 rounded text-xs font-bold bg-slate-50">
-                        <input type="number" v-model="c.capacity" placeholder="Cap" class="border p-2 rounded text-xs font-bold bg-slate-50">
-                        <input v-model="c.tutor" placeholder="Tutor" class="border p-2 rounded text-xs font-bold bg-slate-50">
-                    </div>
-                    <div class="flex gap-2 mt-2">
-                        <button @click="c.active = !c.active" :class="c.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="flex-1 py-2 rounded text-[10px] font-black uppercase">
-                            {{ c.active ? 'Visible' : 'Hidden' }}
+                <!-- 5. ADMIN DASHBOARD -->
+                <div v-else-if="view === 'adminDashboard'" :key="'dashboard'" class="mt-4">
+                    <div class="segmented flex w-full mb-8">
+                        <button v-for="t in ['Bookings', 'Classes', 'Settings']" :key="t" 
+                            @click="adminTab = t"
+                            :class="{active: adminTab === t}"
+                            class="flex-1 py-3 text-sm font-medium text-ink/40">
+                            {{ t }}
                         </button>
-                        <button @click="deleteClass(c.id)" class="bg-slate-100 text-slate-400 px-4 py-2 rounded text-[10px] font-black uppercase">Delete</button>
                     </div>
-                </div>
-            </div>
 
-            <!-- ADMIN TAB: SETTINGS -->
-            <div v-if="adminTab === 'Settings'" class="space-y-4 px-2">
-                <div class="ios-card p-4 space-y-4">
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Centre Name</label>
-                        <input v-model="settings.centreName" class="w-full border p-3 rounded-lg font-bold bg-slate-50">
+                    <!-- ADMIN: BOOKINGS -->
+                    <div v-if="adminTab === 'Bookings'" class="space-y-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <button @click="adminFilter = (adminFilter === 'All' ? 'Tomorrow' : 'All')" 
+                                class="text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-ink/10 transition"
+                                :class="adminFilter === 'Tomorrow' ? 'bg-ink text-white' : 'text-ink/40'">
+                                {{ adminFilter === 'Tomorrow' ? 'Tomorrow Only' : 'Show All' }}
+                            </button>
+                            <button @click="exportCSV" class="text-[10px] font-black uppercase tracking-widest text-gold">Export CSV</button>
+                        </div>
+
+                        <div v-for="b in filteredBookings" :key="b.id" class="bg-white p-5 rounded-2xl hairline shadow-sm">
+                            <div class="flex justify-between mb-2">
+                                <h4 class="font-bold text-lg leading-none uppercase tracking-tight">{{ b.studentName }}</h4>
+                                <select v-model="b.status" class="text-[10px] font-bold uppercase tracking-widest bg-paper p-1 rounded">
+                                    <option v-for="s in ['Pending', 'Confirmed', 'Attended', 'No-show', 'Cancelled', 'Makeup']">{{ s }}</option>
+                                </select>
+                            </div>
+                            <p class="text-sm text-ink/60 mb-4">{{ getClass(b.classId).subject }} · {{ b.type }} · {{ b.phone }}</p>
+                            <div class="flex gap-2">
+                                <button @click="sendConfirmWA(b)" class="flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-paper text-ink/60 hover:bg-gold/10 hover:text-gold transition">Confirm</button>
+                                <button @click="sendReminderWA(b)" class="flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-paper text-ink/60 hover:bg-ink hover:text-white transition">Remind</button>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">WhatsApp (65XXXXXXXX)</label>
-                        <input v-model="settings.centrePhone" class="w-full border p-3 rounded-lg font-bold bg-slate-50">
+
+                    <!-- ADMIN: CLASSES -->
+                    <div v-if="adminTab === 'Classes'" class="space-y-4">
+                        <button @click="addClass" class="w-full py-4 rounded-xl border-2 border-dashed border-ink/10 text-ink/40 text-sm font-bold hover:border-gold hover:text-gold transition">+ New Class Slot</button>
+                        <div v-for="c in classes" :key="c.id" class="bg-white p-5 rounded-2xl hairline shadow-sm space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input v-model="c.subject" class="bg-paper p-2 rounded text-xs font-bold" placeholder="Subject">
+                                <input v-model="c.level" class="bg-paper p-2 rounded text-xs font-bold" placeholder="Level">
+                                <select v-model="c.day" class="bg-paper p-2 rounded text-xs font-bold">
+                                    <option v-for="d in days">{{ d }}</option>
+                                </select>
+                                <input v-model="c.startTime" class="bg-paper p-2 rounded text-xs font-bold" placeholder="Time">
+                                <input v-model="c.tutor" class="bg-paper p-2 rounded text-xs font-bold" placeholder="Tutor">
+                                <input type="number" v-model="c.capacity" class="bg-paper p-2 rounded text-xs font-bold" placeholder="Cap">
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <button @click="c.active = !c.active" :class="c.active ? 'text-green-600' : 'text-red-400'" class="flex-1 text-[10px] font-black uppercase tracking-widest">{{ c.active ? 'Active' : 'Hidden' }}</button>
+                                <button @click="deleteClass(c.id)" class="text-ink/20 text-[10px] font-black uppercase tracking-widest">Delete</button>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase">Admin Password</label>
-                        <input type="text" v-model="settings.adminPassword" class="w-full border p-3 rounded-lg font-bold bg-slate-50">
+
+                    <!-- ADMIN: SETTINGS -->
+                    <div v-if="adminTab === 'Settings'" class="space-y-6 bg-white p-6 rounded-2xl hairline shadow-sm">
+                        <div>
+                            <label class="text-[10px] font-black text-ink/30 uppercase tracking-widest">Centre Name</label>
+                            <input v-model="settings.centreName" class="w-full mt-1 font-semibold py-2 border-b border-ink/5">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-ink/30 uppercase tracking-widest">WA Number (65XXXXXXXX)</label>
+                            <input v-model="settings.centrePhone" class="w-full mt-1 font-semibold py-2 border-b border-ink/5">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-ink/30 uppercase tracking-widest">Admin Password</label>
+                            <input v-model="settings.adminPassword" type="text" class="w-full mt-1 font-semibold py-2 border-b border-ink/5">
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+
+            </transition>
+        </main>
+        
+        <footer class="safe-bottom"></footer>
     </div>
 
     <script>
@@ -207,11 +291,11 @@
             setup() {
                 const view = ref('landing');
                 const adminTab = ref('Bookings');
-                const adminPassInput = ref('');
-                const searchQuery = ref('');
                 const adminFilter = ref('All');
+                const adminPassInput = ref('');
+                const selectedDay = ref('All');
                 const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                
+
                 const settings = ref({
                     centreName: 'Apex Tuition',
                     centrePhone: '6580000000',
@@ -219,12 +303,12 @@
                 });
 
                 const classes = ref([
-                    { id: 1, subject: 'P5 Maths', level: 'P5', day: 'Sat', startTime: '10:00', duration: 90, tutor: 'Mr. Tan', capacity: 6, active: true },
-                    { id: 2, subject: 'P6 Science', level: 'P6', day: 'Sat', startTime: '11:30', duration: 90, tutor: 'Ms. Lee', capacity: 6, active: true },
-                    { id: 3, subject: 'Sec 1 English', level: 'Sec 1', day: 'Sat', startTime: '14:00', duration: 90, tutor: 'Ms. Wong', capacity: 6, active: true },
-                    { id: 4, subject: 'Sec 3 E-Math', level: 'Sec 3', day: 'Sun', startTime: '10:00', duration: 90, tutor: 'Mr. Tan', capacity: 6, active: true },
-                    { id: 5, subject: 'Sec 4 A-Math', level: 'Sec 4', day: 'Sun', startTime: '13:00', duration: 90, tutor: 'Mr. Tan', capacity: 6, active: true },
-                    { id: 6, subject: 'JC1 Chem', level: 'JC1', day: 'Sun', startTime: '15:30', duration: 90, tutor: 'Dr. Ang', capacity: 6, active: true }
+                    { id: 1, subject: 'P5 Maths', level: 'P5', day: 'Sat', startTime: '10:00', tutor: 'Mr. Tan', capacity: 6, active: true },
+                    { id: 2, subject: 'P6 Science', level: 'P6', day: 'Sat', startTime: '11:30', tutor: 'Ms. Lee', capacity: 6, active: true },
+                    { id: 3, subject: 'Sec 1 English', level: 'Sec 1', day: 'Sat', startTime: '14:00', tutor: 'Ms. Wong', capacity: 6, active: true },
+                    { id: 4, subject: 'Sec 3 E-Math', level: 'Sec 3', day: 'Sun', startTime: '10:00', tutor: 'Mr. Tan', capacity: 6, active: true },
+                    { id: 5, subject: 'Sec 4 A-Math', level: 'Sec 4', day: 'Sun', startTime: '13:00', tutor: 'Mr. Tan', capacity: 6, active: true },
+                    { id: 6, subject: 'JC1 Chem', level: 'JC1', day: 'Sun', startTime: '15:30', tutor: 'Dr. Ang', capacity: 6, active: true }
                 ]);
 
                 const bookings = ref([]);
@@ -232,13 +316,20 @@
                 const lastBooking = ref(null);
                 const form = ref({ studentName: '', parentName: '', phone: '', type: 'Trial' });
 
+                // Persistence
                 onMounted(() => {
-                    const savedSettings = localStorage.getItem('cs_v2_settings');
-                    const savedClasses = localStorage.getItem('cs_v2_classes');
-                    const savedBookings = localStorage.getItem('cs_v2_bookings');
-                    if (savedSettings) settings.value = JSON.parse(savedSettings);
-                    if (savedClasses) classes.value = JSON.parse(savedClasses);
-                    if (savedBookings) bookings.value = JSON.parse(savedBookings);
+                    const s = localStorage.getItem('cs_v2_settings');
+                    const c = localStorage.getItem('cs_v2_classes');
+                    const b = localStorage.getItem('cs_v2_bookings');
+                    if(s) settings.value = JSON.parse(s);
+                    if(c) classes.value = JSON.parse(c);
+                    if(b) bookings.value = JSON.parse(b);
+
+                    // History Management (Fix nav bug)
+                    window.onpopstate = (event) => {
+                        if (event.state && event.state.view) view.value = event.state.view;
+                        else view.value = 'landing';
+                    };
                 });
 
                 watch([settings, classes, bookings], () => {
@@ -247,31 +338,41 @@
                     localStorage.setItem('cs_v2_bookings', JSON.stringify(bookings.value));
                 }, { deep: true });
 
+                const navigateTo = (newView) => {
+                    view.value = newView;
+                    window.history.pushState({view: newView}, '');
+                };
+
+                const handleBack = () => window.history.back();
+                
+                const resetToHome = () => {
+                    view.value = 'landing';
+                    adminPassInput.value = '';
+                    window.history.pushState({view: 'landing'}, '');
+                };
+
+                const isAdminView = computed(() => ['adminLogin', 'adminDashboard'].includes(view.value));
+
                 const filteredClasses = computed(() => {
-                    return classes.value.filter(c => 
-                        c.active && 
-                        (c.subject.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-                         c.level.toLowerCase().includes(searchQuery.value.toLowerCase()))
-                    );
+                    if (selectedDay.value === 'All') return classes.value.filter(c => c.active);
+                    return classes.value.filter(c => c.active && c.day === selectedDay.value);
                 });
 
                 const getSeatsLeft = (id) => {
                     const c = classes.value.find(x => x.id === id);
-                    const taken = bookings.value.filter(b => b.classId === id && (b.status === 'Pending' || b.status === 'Confirmed')).length;
+                    const taken = bookings.value.filter(b => b.classId === id && ['Pending', 'Confirmed'].includes(b.status)).length;
                     return c.capacity - taken;
                 };
 
                 const openBooking = (c) => {
                     selectedClass.value = c;
-                    view.value = 'booking';
+                    navigateTo('booking');
                 };
 
+                const isPhoneValid = computed(() => /^[89]\d{7}$/.test(form.value.phone));
+                const isFormValid = computed(() => form.value.studentName.length > 2 && form.value.parentName.length > 2 && isPhoneValid.value);
+
                 const submitBooking = () => {
-                    const sgPhone = /^[89]\d{7}$/;
-                    if (!form.value.studentName || !form.value.parentName || !sgPhone.test(form.value.phone)) {
-                        alert("Enter a valid 8-digit SG phone starting with 8 or 9.");
-                        return;
-                    }
                     const b = {
                         id: Date.now(),
                         classId: selectedClass.value.id,
@@ -280,70 +381,72 @@
                         phone: '65' + form.value.phone,
                         type: form.value.type,
                         status: 'Pending',
-                        timeBooked: new Date().toLocaleString()
+                        time: new Date().toLocaleString()
                     };
                     bookings.value.push(b);
                     lastBooking.value = b;
-                    view.value = 'success';
+                    navigateTo('success');
+                    form.value = { studentName: '', parentName: '', phone: '', type: 'Trial' };
                 };
 
                 const whatsappLink = computed(() => {
-                    if (!lastBooking.value) return '#';
+                    if (!lastBooking.value) return '';
                     const c = classes.value.find(x => x.id === lastBooking.value.classId);
-                    const msg = `Hi ${settings.value.centreName}, I booked ${lastBooking.value.studentName} for ${c.subject} on ${c.day} ${c.startTime}. Parent: ${lastBooking.value.parentName} (${lastBooking.value.phone})`;
+                    const msg = `Hi ${settings.value.centreName}, I've booked ${lastBooking.value.studentName} for ${c.subject} (${c.level}) on ${c.day} ${c.startTime}. Parent: ${lastBooking.value.parentName}.`;
                     return `https://wa.me/${settings.value.centrePhone}?text=${encodeURIComponent(msg)}`;
                 });
 
                 const login = () => {
-                    if (adminPassInput.value === settings.value.adminPassword) view.value = 'adminDashboard';
-                    else alert("Access Denied");
+                    if (adminPassInput.value === settings.value.adminPassword) navigateTo('adminDashboard');
+                    else alert('Incorrect password');
                 };
 
                 const filteredBookings = computed(() => {
-                    let bks = [...bookings.value].sort((a, b) => b.id - a.id);
+                    let res = [...bookings.value].sort((a,b) => b.id - a.id);
                     if (adminFilter.value === 'Tomorrow') {
-                        const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                        const tomorrow = daysArr[(new Date().getDay() + 1) % 7];
-                        bks = bks.filter(b => getClass(b.classId).day === tomorrow);
+                        const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                        const tomorrow = daysMap[(new Date().getDay() + 1) % 7];
+                        res = res.filter(b => getClass(b.classId).day === tomorrow);
                     }
-                    return bks;
+                    return res;
                 });
 
                 const getClass = (id) => classes.value.find(c => c.id === id) || {};
 
                 const sendConfirmWA = (b) => {
                     const c = getClass(b.classId);
-                    const msg = `Hi ${b.parentName}, ${b.studentName} is booked for ${c.subject} ${c.level} on ${c.day} ${c.startTime} with ${c.tutor}. Please reply YES to confirm. — ${settings.value.centreName}`;
+                    const msg = `Hi ${b.parentName}, ${b.studentName} is booked for ${c.subject} on ${c.day} ${c.startTime}. Reply YES to confirm. — ${settings.value.centreName}`;
                     window.open(`https://wa.me/${b.phone}?text=${encodeURIComponent(msg)}`);
                 };
 
                 const sendReminderWA = (b) => {
                     const c = getClass(b.classId);
-                    const msg = `Reminder: ${b.studentName} has ${c.subject} tomorrow ${c.startTime} at ${settings.value.centreName}. Reply C to confirm or R to reschedule.`;
+                    const msg = `Reminder: ${b.studentName} has ${c.subject} tomorrow at ${c.startTime}. Reply C to confirm or R to reschedule.`;
                     window.open(`https://wa.me/${b.phone}?text=${encodeURIComponent(msg)}`);
                 };
 
                 const exportCSV = () => {
-                    let csv = "DateBooked,Class,Student,Parent,Phone,Status\n";
+                    let csv = "Date,Class,Student,Parent,Phone,Status\n";
                     bookings.value.forEach(b => {
                         const c = getClass(b.classId);
-                        csv += `${b.timeBooked},${c.subject},${b.studentName},${b.parentName},${b.phone},${b.status}\n`;
+                        csv += `${b.time},${c.subject},${b.studentName},${b.parentName},${b.phone},${b.status}\n`;
                     });
                     const blob = new Blob([csv], { type: 'text/csv' });
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url; a.download = 'bookings.csv'; a.click();
+                    a.href = url; a.download = `bookings_${new Date().toLocaleDateString()}.csv`; a.click();
                 };
 
                 const addClass = () => {
-                    classes.value.unshift({ id: Date.now(), subject: 'New Subject', level: 'Sec 1', day: 'Sat', startTime: '10:00', duration: 90, tutor: 'Tutor Name', capacity: 6, active: true });
+                    classes.value.unshift({ id: Date.now(), subject: 'New Class', level: 'Sec 1', day: 'Sat', startTime: '09:00', tutor: 'Tutor', capacity: 6, active: true });
                 };
 
                 const deleteClass = (id) => { if(confirm('Delete class?')) classes.value = classes.value.filter(c => c.id !== id); };
 
                 return {
-                    view, adminTab, adminPassInput, searchQuery, adminFilter, days, settings, classes, bookings, selectedClass, lastBooking, form,
-                    filteredClasses, getSeatsLeft, openBooking, submitBooking, whatsappLink, login, filteredBookings, getClass, sendConfirmWA, sendReminderWA, exportCSV, addClass, deleteClass
+                    view, adminTab, adminFilter, adminPassInput, selectedDay, days, settings, classes, bookings, selectedClass, lastBooking, form,
+                    filteredClasses, getSeatsLeft, openBooking, isPhoneValid, isFormValid, submitBooking, whatsappLink, login, filteredBookings, getClass,
+                    sendConfirmWA, sendReminderWA, exportCSV, addClass, deleteClass, resetToHome, handleBack, navigateTo, isAdminView
                 }
             }
         }).mount('#app');
